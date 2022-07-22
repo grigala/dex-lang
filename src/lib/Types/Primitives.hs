@@ -97,6 +97,7 @@ data PrimOp e =
       | ThrowError e                 -- Hard error (parameterized by result type)
       | ThrowException e             -- Catchable exceptions (unlike `ThrowError`)
       | Resume e e                   -- Resume from effect handler (type, arg)
+      | Handle e e                   -- Call a handler (handler def, body)
       -- References
       | IndexRef e e
       | ProjRef Int e
@@ -142,6 +143,7 @@ data PrimOp e =
       | OutputStreamPtr
       -- Odds, ends and hacks.
       | ProjMethod e Int  -- project a method from the dict
+      | ProjEffectOp e Int -- project an effect operation from a handler
       | ExplicitApply e e
       | MonoLiteral e
         deriving (Show, Eq, Generic, Functor, Foldable, Traversable)

@@ -411,18 +411,57 @@ newtype ObjectFiles n = ObjectFiles (S.Set (ObjectFileName n))
 
 -- TODO: consider making this an open union via a typeable-like class
 data Binding (c::C) (n::S) where
-  AtomNameBinding   :: AtomBinding n                  -> Binding AtomNameC       n
-  DataDefBinding    :: DataDef n                      -> Binding DataDefNameC    n
-  TyConBinding      :: DataDefName n        -> Atom n -> Binding TyConNameC      n
-  DataConBinding    :: DataDefName n -> Int -> Atom n -> Binding DataConNameC    n
-  ClassBinding      :: ClassDef n                     -> Binding ClassNameC      n
-  InstanceBinding   :: InstanceDef n                  -> Binding InstanceNameC   n
-  MethodBinding     :: Name ClassNameC n -> Int -> Atom n -> Binding MethodNameC     n
-  ImpFunBinding     :: ImpFunction n                  -> Binding ImpFunNameC     n
-  ObjectFileBinding :: ObjectFile n                   -> Binding ObjectFileNameC n
-  ModuleBinding     :: Module n                       -> Binding ModuleNameC     n
-  PtrBinding        :: PtrLitVal                      -> Binding PtrNameC        n
+  AtomNameBinding   :: AtomBinding n                       -> Binding AtomNameC       n
+  DataDefBinding    :: DataDef n                           -> Binding DataDefNameC    n
+  TyConBinding      :: DataDefName n             -> Atom n -> Binding TyConNameC      n
+  DataConBinding    :: DataDefName n      -> Int -> Atom n -> Binding DataConNameC    n
+  ClassBinding      :: ClassDef n                          -> Binding ClassNameC      n
+  InstanceBinding   :: InstanceDef n                       -> Binding InstanceNameC   n
+  MethodBinding     :: Name ClassNameC n  -> Int -> Atom n -> Binding MethodNameC     n
+  EffectBinding     :: EffectDef n                         -> Binding EffectNameC     n
+  HandlerBinding    :: HandlerDef n                        -> Binding HandlerNameC    n
+  EffectOpBinding   :: Name EffectNameC n -> Int -> Atom n -> Binding EffectOpNameC   n
+  ImpFunBinding     :: ImpFunction n                       -> Binding ImpFunNameC     n
+  ObjectFileBinding :: ObjectFile n                        -> Binding ObjectFileNameC n
+  ModuleBinding     :: Module n                            -> Binding ModuleNameC     n
+  PtrBinding        :: PtrLitVal                           -> Binding PtrNameC        n
 deriving instance Show (Binding c n)
+
+data EffectDef (n::S) where
+  EffectDef :: SourceName
+            -> [(SourceName, EffectOpType n)]
+            -> EffectDef n
+  deriving(Show)
+
+data HandlerDef (n::S) where
+  HandlerDef :: SourceName
+             -> Nest PiBinder n l
+               -> EffectRow l
+               -> Type l
+               -> [Atom l]  -- effect operations
+               -> Atom l    -- return body
+             -> HandlerDef n
+
+instance GenericE HandlerDef where
+  type RepE HandlerDef =
+    LiftE SourceName `PairE` Abs (Nest PiBinder) (EffectRow `PairE` Type `PairE` ListE Atom `PairE` Atom)
+  fromE (HandlerDef name bs effs ty ops ret) =
+    LiftE name `PairE` Abs bs (effs `PairE` ty `PairE` ListE ops `PairE` ret)
+  toE (LiftE name `PairE` Abs bs (effs `PairE` ty `PairE` ListE ops `PairE` ret)) =
+    HandlerDef name bs effs ty ops ret
+
+instance SinkableE HandlerDef
+instance HoistableE  HandlerDef
+instance AlphaEqE HandlerDef
+instance AlphaHashableE HandlerDef
+instance SubstE Name HandlerDef
+instance SubstE AtomSubstVal HandlerDef
+deriving instance Show (HandlerDef n)
+deriving via WrapE HandlerDef n instance Generic (HandlerDef n)
+
+data EffectOpType (n::S) where
+  EffectOpType :: UResumePolicy -> Type n -> EffectOpType n
+  deriving(Show)
 
 data AtomBinding (n::S) =
    LetBound    (DeclBinding   n)
