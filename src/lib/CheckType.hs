@@ -156,17 +156,21 @@ instance CheckableB EnvFrag where
 
 instance Color c => CheckableE (Binding c) where
   checkE binding = case binding of
-    AtomNameBinding   atomNameBinding   -> AtomNameBinding <$> checkE atomNameBinding
-    DataDefBinding    dataDef           -> DataDefBinding  <$> checkE dataDef
-    TyConBinding      dataDefName     e -> TyConBinding    <$> substM dataDefName              <*> substM e
-    DataConBinding    dataDefName idx e -> DataConBinding  <$> substM dataDefName <*> pure idx <*> substM e
-    ClassBinding      classDef          -> ClassBinding    <$> substM classDef
-    InstanceBinding   instanceDef       -> InstanceBinding <$> substM instanceDef
-    MethodBinding className idx f       -> MethodBinding     <$> substM className <*> pure idx <*> substM f
+    AtomNameBinding   atomNameBinding   -> AtomNameBinding   <$> checkE atomNameBinding
+    DataDefBinding    dataDef           -> DataDefBinding    <$> checkE dataDef
+    TyConBinding      dataDefName     e -> TyConBinding      <$> substM dataDefName              <*> substM e
+    DataConBinding    dataDefName idx e -> DataConBinding    <$> substM dataDefName <*> pure idx <*> substM e
+    ClassBinding      classDef          -> ClassBinding      <$> substM classDef
+    InstanceBinding   instanceDef       -> InstanceBinding   <$> substM instanceDef
+    MethodBinding     className idx f   -> MethodBinding     <$> substM className <*> pure idx <*> substM f
     ImpFunBinding     f                 -> ImpFunBinding     <$> substM f
     ObjectFileBinding objfile           -> ObjectFileBinding <$> substM objfile
     ModuleBinding     md                -> ModuleBinding     <$> substM md
     PtrBinding        ptr               -> PtrBinding        <$> return ptr
+    -- todo: consider checkE below?
+    EffectBinding     eff               -> EffectBinding     <$> substM eff
+    HandlerBinding    h                 -> HandlerBinding    <$> substM h
+    EffectOpBinding   effName i body    -> EffectOpBinding   <$> substM effName <*> pure i <*> substM body
 
 instance CheckableE AtomBinding where
   checkE binding = case binding of

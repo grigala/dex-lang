@@ -60,6 +60,7 @@ data Atom (n::S) =
  | TypeCon SourceName (DataDefName n) (DataDefParams n)
  | DictCon (DictExpr n)
  | DictTy  (DictType n)
+ -- handler dict con/ty
  | LabeledRow (FieldRowElems n)
  | Record (LabeledItems (Atom n))
  | RecordTy  (FieldRowElems n)
@@ -431,7 +432,23 @@ data EffectDef (n::S) where
   EffectDef :: SourceName
             -> [(SourceName, EffectOpType n)]
             -> EffectDef n
-  deriving(Show)
+
+instance GenericE EffectDef where
+  type RepE EffectDef =
+    LiftE SourceName `PairE` ListE (LiftE SourceName `PairE` EffectOpType)
+  fromE (EffectDef name ops) =
+    LiftE name `PairE` ListE (map (\(x, y) -> LiftE x `PairE` y) ops)
+  toE (LiftE name `PairE` ListE ops) =
+    EffectDef name (map (\(LiftE x `PairE` y)->(x,y)) ops)
+
+instance SinkableE EffectDef
+instance HoistableE  EffectDef
+instance AlphaEqE EffectDef
+instance AlphaHashableE EffectDef
+instance SubstE Name EffectDef
+instance SubstE AtomSubstVal EffectDef
+deriving instance Show (EffectDef n)
+deriving via WrapE EffectDef n instance Generic (EffectDef n)
 
 data HandlerDef (n::S) where
   HandlerDef :: SourceName
